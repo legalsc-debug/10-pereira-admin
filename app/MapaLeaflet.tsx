@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { COMUNAS_GEO, VEREDAS_GEO, BARRIOS_GEO } from '@/lib/geo-data';
+import { COMUNAS_GEO, CORREGIMIENTOS_GEO, VEREDAS_GEO, BARRIOS_GEO } from '@/lib/geo-data';
 import { ESTADOS, SECTORES_COLORES } from '@/lib/constants';
 import type { Contacto, GeoRing } from '@/lib/types';
 
@@ -22,7 +22,7 @@ function InvalidateOnResize() {
 }
 
 export default function MapaLeaflet({ contactos }: { contactos: Contacto[] }) {
-  const [layers, setLayers] = useState({ comunas: true, barrios: true, veredas: true, labels: true });
+  const [layers, setLayers] = useState({ comunas: true, corregimientos: true, barrios: true, veredas: true, labels: true });
   const [filterEstado, setFilterEstado] = useState<string>('');
   const [filterRespVisita, setFilterRespVisita] = useState<string>('');
 
@@ -125,7 +125,7 @@ export default function MapaLeaflet({ contactos }: { contactos: Contacto[] }) {
         <div className="p-3 border-b border-border">
           <h3 className="text-sm font-bold mb-2">Capas</h3>
           <div className="flex flex-wrap gap-1">
-            {(['comunas', 'barrios', 'veredas', 'labels'] as const).map(key => (
+            {(['comunas', 'corregimientos', 'barrios', 'veredas', 'labels'] as const).map(key => (
               <button
                 key={key}
                 onClick={() => toggleLayer(key)}
@@ -191,6 +191,25 @@ export default function MapaLeaflet({ contactos }: { contactos: Contacto[] }) {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
+          {layers.corregimientos && CORREGIMIENTOS_GEO.map((cg, i) => {
+            const corrKey = 'CORR. ' + cg.n.toUpperCase().replace('LA ESTRELLA-LA PALMILLA', 'ESTRELLA LA PALMILLA').replace('TRIBUNAS CORCEGA', 'TRIBUNAS CORSEGA');
+            const col = SECTORES_COLORES[corrKey] || '#556B2F';
+            const count = totalBySector[corrKey] || 0;
+            const intensity = Math.min(0.35, 0.06 + (count / 80) * 0.2);
+            return (
+              <Polygon
+                key={`cg-${i}`}
+                positions={cg.r.map(toLatLngs)}
+                pathOptions={{ color: col, fillColor: col, weight: 2, dashArray: '6 4', fillOpacity: intensity }}
+              >
+                <Tooltip sticky>
+                  <strong>{corrKey}</strong><br />
+                  {count} contactos
+                </Tooltip>
+              </Polygon>
+            );
+          })}
 
           {layers.veredas && VEREDAS_GEO.map((v, i) => (
             <Polygon
